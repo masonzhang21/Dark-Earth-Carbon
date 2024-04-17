@@ -1,0 +1,22 @@
+# Dependency directories
+node_modules/
+
+# Debug logs
+*.log
+
+# Local .env files
+.env
+
+# Firebase config files that may include sensitive info
+.firebaserc
+
+# Local cache files (uncomment if applicable)
+#.firebase/
+
+# Optional: Exclude the local Firebase emulator files
+.firestore/*.log
+.firestore/*.json
+firebase-debug.log*
+ui-debug.log
+# This is to exclude any files that might contain local environment variables
+# local.*
