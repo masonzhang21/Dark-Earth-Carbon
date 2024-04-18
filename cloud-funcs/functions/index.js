@@ -80,21 +80,27 @@ async function calculateSupplyDemandProjections(prefixPath) {
 	const inputsSupply = await getTable("inputs").where("deliveryDate", "<", projectionEnd).where("status", "==", "Scheduled").get();
 	for (const input of inputsSupply.docs) {
 		const inputData = input.data();
-        const qtyField = inputData["type"][0]["id"] === "Biomass" ? "quantityTons" : "quantityLiters"
-		supply[inputData["input"][0]["id"]] += inputData[qtyField];
+        const qtyField = inputData["type"] === "Biomass" ? "quantityTons" : "quantityLiters"
+        if (inputData[qtyField]) {
+            // it's technically possible for the qtyField to be undefined since we can't require it
+            supply[inputData["input"][0]["id"]] += inputData[qtyField];
+        }
 	}
 	// average of past 14 days of biochar production and biomass use
 	const biocharProdSupply = await getTable("biochar-prod").where("endDate", "<", now).where("endDate", ">", nowMinus14).get();    
 	for (const productionLot of biocharProdSupply.docs) {
 		const productionData = productionLot.data();
-        supply["Biochar"] += Math.round(productionData.quantityLiters / 14);
+        supply["Biochar"] += productionData.quantityLiters / 14;
         if (productionData.feedstock && productionData.biomassQuantity) {
             // add to feedstock consumption 
             const feedstock = productionData.feedstock[0]["id"]
-            supply[feedstock] += +productionData.biomassQuantity.toFixed(2)
+            if (productionData.biomassQuantity) {
+                // check to make sure biomassQuantity is set because it is optional
+                demand[feedstock] += +(productionData.biomassQuantity/14).toFixed(1)
+            }
         }
 	}
-    
+    supply["Biochar"] = Math.round(supply["Biochar"])
 
 	return {supply, demand};
 }
@@ -144,7 +150,7 @@ async function calculateInventoryOnHand(prefixPath) {
 	const inputs = await getTable("inputs").where("status", "==", "Obtained").get();
 	for (const input of inputs.docs) {
 		const inputData = input.data();
-        const qtyField = inputData["type"][0]["id"] === "Biomass" ? "quantityTons" : "quantityLiters"
+        const qtyField = inputData["type"] === "Biomass" ? "quantityTons" : "quantityLiters"
 		inventory[inputData["input"][0]["id"]] += inputData[qtyField];
 	}
 	const biocharProd = await getTable("biochar-prod").get();
@@ -287,19 +293,26 @@ function scheduleWarnings(collectionPathPrefix) {
     })
 }
 
-exports.dataHousekeeping = onSchedule("every day 00:00", async event => {
+const schedule = {
+    schedule: "every day 06:00",
+    timeZone: "Africa/Nairobi"
+}
+
+exports.dataHousekeeping = onSchedule(schedule, async event => {
 	const sites = (await db.collection("sites").listDocuments()).map(doc => doc.id);
 	for (const site of sites) {
+        console.log("Housekeeping for", site)
 		const collectionPathPrefix = `sites/${site}`;
 		calculateSupplyDemandProjections(collectionPathPrefix).then(({supply, demand}) => {
-			const inventoryRef = db.collection(`${prefixPath}/inventory`);
+            console.log(supply, demand)
+			const inventoryRef = db.collection(`${collectionPathPrefix}/inventory`);
 			// supply and demand have same keys, for loop that gets both vals per key
 			for (const item in supply) {
                 // update supply and demand forecasts in inventory
-				inventoryRef.doc(item).update({supplyForecast: supply[item], demandForecast: demand[item]});
+				inventoryRef.doc(item).update({supplyForecast: supply[item] || 0, demandForecast: demand[item] || 0});
 			}
 		});
-        //scheduleWarnings(collectionPathPrefix)
+        scheduleWarnings(collectionPathPrefix)
 	}
 });
 
@@ -314,11 +327,9 @@ exports.testSupplyDemandCalculations = functions.https.onCall(async (data, conte
     });
 })
 exports.testWarnings = functions.https.onCall(async (data, context) => {
-    // ideal: mock the scheduleWarnings function. current: manually inspect Teams channel.
     const collectionPathPrefix = `test/mock-site`
     scheduleWarnings(collectionPathPrefix)
 })
-
 exports.testInventoryOnHand = functions.https.onCall(async (data, context) => {
     const inventory = await calculateInventoryOnHand("test/mock-site")
     console.log(inventory)
