@@ -5,6 +5,7 @@ import pandas as pd
 import datetime
 import pytz
 
+print(st.secrets)
 secrets = st.secrets["firebase"]
 print(secrets)
 # Function to initialize Firebase if it hasn't been initialized already
