@@ -5,10 +5,10 @@ import pandas as pd
 import datetime
 import pytz
 import json
-print(st.secrets)
 secrets = st.secrets["firebase"]
-secrets_obj = json.loads(secrets)
+print(type(secrets))
 print(secrets)
+secrets_obj = json.loads(secrets)
 print(secrets_obj)
 # Function to initialize Firebase if it hasn't been initialized already
 def initialize_firebase():
