@@ -4,14 +4,16 @@ import firebase_admin
 import pandas as pd
 import datetime
 import pytz
-
+import json
 print(st.secrets)
 secrets = st.secrets["firebase"]
+secrets_obj = json.loads(secrets)
 print(secrets)
+print(secrets_obj)
 # Function to initialize Firebase if it hasn't been initialized already
 def initialize_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate(secrets)
+        cred = credentials.Certificate(secrets_obj)
         firebase_admin.initialize_app(cred)
     else:
         # If already initialized, use the existing app
