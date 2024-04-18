@@ -5,10 +5,11 @@ import pandas as pd
 import datetime
 import pytz
 
+secrets = st.secrets["secrets"]
 # Function to initialize Firebase if it hasn't been initialized already
 def initialize_firebase():
     if not firebase_admin._apps:
-        cred = credentials.Certificate("serviceKey.json")
+        cred = credentials.Certificate(secrets)
         firebase_admin.initialize_app(cred)
     else:
         # If already initialized, use the existing app
