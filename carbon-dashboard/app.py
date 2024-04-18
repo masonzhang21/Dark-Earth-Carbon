@@ -190,10 +190,10 @@ with dashboard_tab:
         col1.metric("Biochar Produced", f"{round(total_biochar_prod, 3)} T")
         col2.metric("Gross CO2 Removed", f"{round(gross_carbon_offset, 3)} T")
         col3.metric("Net CO2 Removed", f"{round(net_carbon_offset, 3)} T")
-        st.write("--")
+        st.write("")
         st.subheader("Carbon Released")
         carbon_released
-        st.write ("--")
+        st.write ("")
         st.subheader("Carbon Retired")
         carbon_retired
 with constants_tab: 
