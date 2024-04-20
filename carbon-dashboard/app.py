@@ -184,7 +184,8 @@ with dashboard_tab:
         end_date = pytz.timezone('Etc/GMT-3').localize(end_date)
         carbon_retired, carbon_released, total_biochar_prod = do_accounting(query_site, start_date, end_date)
         gross_carbon_offset = carbon_retired["Tons CO2eq"].sum()
-        net_carbon_offset = gross_carbon_offset - carbon_released["Tons CO2eq"].sum()
+        SAFETY_MARGIN_MULTIPLIER = 1.1 # 10% margin of safety
+        net_carbon_offset = gross_carbon_offset - (SAFETY_MARGIN_MULTIPLIER * carbon_released["Tons CO2eq"].sum())
         st.subheader("Summary")
         col1, col2, col3 = st.columns(3)
         col1.metric("Biochar Produced", f"{round(total_biochar_prod, 3)} T")
@@ -193,6 +194,7 @@ with dashboard_tab:
         st.write("")
         st.subheader("Carbon Released")
         carbon_released
+        st.write("*Note: 10% margin of safety has been added to the total carbon expenditures in calculating the net carbon offset, but not the Carbon Released table.")
         st.write ("")
         st.subheader("Carbon Retired")
         carbon_retired
